@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "pathname"
+
+require_relative "../lib/pd/csviser"
+
+csviser = PD::CSViser.new
+
+ARGV.each do |filename|
+  source = Pathname.new(filename)
+
+  csviser.add_list(source.readlines)
+end
+
+$stdout.puts(csviser.to_csv)

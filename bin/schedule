@@ -1,0 +1,75 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "date"
+require "csv"
+
+year, month = ARGV[0].split("-")
+                     .map(&:to_i)
+csv = CSV.parse($stdin)
+
+schedule = {}
+balancer = Hash.new { |hash, key| hash[key] = [] }
+
+# NOTE: It's an experimental feature. The idea is to calculate "weights" for
+#       each person based on their availability. The more days the person is
+#       available, the higher the weight.
+weights = Hash.new { |hash, key| hash[key] = 0 }
+csv.each do |row|
+  row.each_with_index do |col, index|
+    next if index.zero? # Skipe the first column because it's a day number.
+
+    weights[col] += 1
+  end
+end
+
+start_date = Date.new(year, month, 1)
+end_date = Date.new(year, month, -1)
+
+start_date.step(end_date) do |date|
+  mday = date.mday
+  team1_name = csv[mday - 1][1]
+  team2_name = csv[mday - 1][2]
+
+  # NOTE: The algoriths is simple. On each day there are two people from
+  #       two teams are available. The person with the least number of
+  #       already assigned oncall shifts gets the current day shift.
+  #
+  #       If they have equal numer of assigned shifts, then the one with
+  #       the higher weight gets the shift.
+  #
+  #       If they have eaqual number of assigned shifts AND the same
+  #       weight (availability score), then a randomly selected person
+  #       gets the current shift.
+  name = if balancer[team1_name].count < balancer[team2_name].count
+           team1_name
+         elsif balancer[team1_name].count > balancer[team2_name].count
+           team2_name
+         elsif weights[team1_name] > weights[team2_name]
+           team1_name
+         elsif weights[team1_name] < weights[team2_name]
+           team2_name
+         else
+           [team1_name, team2_name].sample
+         end
+
+  balancer[name] << mday
+  schedule[mday] = name
+end
+
+puts "Schedule #{year}-#{format("%02d", month)}"
+puts ""
+puts "```"
+schedule.each do |(mday, name)|
+  puts format("%2d %s", mday, name)
+end
+puts "```"
+
+puts ""
+puts "Balance"
+puts ""
+puts "```"
+balancer.each do |(name, mdays)|
+  puts format("%15s %s", name, mdays.to_s)
+end
+puts "```"

@@ -17,7 +17,7 @@ balancer = Hash.new { |hash, key| hash[key] = [] }
 weights = Hash.new { |hash, key| hash[key] = 0 }
 csv.each do |row|
   row.each_with_index do |col, index|
-    next if index.zero? # Skipe the first column because it's a day number.
+    next if index.zero? # Skip the first column because it's a day number.
 
     weights[col] += 1
   end

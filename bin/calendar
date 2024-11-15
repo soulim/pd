@@ -1,0 +1,43 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "csv"
+
+require_relative "../lib/pd/calendar"
+
+year, month = ARGV[0].split("-")
+                     .map(&:to_i)
+
+# Parse holidays data.
+holidays = []
+half_holidays = []
+
+csv = CSV.parse($stdin)
+
+csv.each do |row|
+  # Skip comments.
+  next if row.size != 3 || row[0].start_with?('#')
+
+  date, type, _ = row
+  date = Date.parse(date)
+
+  case type
+  when "F" then holidays << date
+  when "H" then half_holidays << date
+  else raise("Unknown holiday type: #{type}. Row: #{row.inspect}")
+  end
+end
+
+calendar = PD::Calendar.build(year: year,
+                              month: month,
+                              holidays: holidays,
+                              half_holidays: half_holidays)
+
+$stdout.puts(format("%5s %5s", "Year", year))
+$stdout.puts(format("%5s %5s", "Month", month))
+$stdout.puts
+$stdout.puts(format("%5s %5s", "DoM", "DoW"))
+
+calendar.entries.each do |entry|
+  $stdout.puts(format("%5s %5s %s", entry.mday, entry.cwday, entry.type))
+end
